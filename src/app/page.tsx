@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Search, Clock, Users, Utensils, BookOpen, ArrowRight, Star } from "lucide-react";
+import { Search, Clock, Users, Utensils, BookOpen, ArrowRight, Star, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "~/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 
 // Define the Recipe type
 interface Recipe {
@@ -27,6 +34,8 @@ export default function kainTayo() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch initial recipes on component mount
   useEffect(() => {
@@ -71,38 +80,36 @@ export default function kainTayo() {
     }
   };
 
+  const handleViewRecipe = (recipe: Recipe) => {
+    setSelectedRecipe(recipe);
+    setIsModalOpen(true);
+  };
+
   return (
     <>
       <SignedIn>
         <div className="min-h-screen bg-gradient-to-b from-[#fffffe] to-[#ffdaba] py-8">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-              <h1 className="text-3xl font-bold text-[#E74C3C] mb-4 md:mb-0">Discover Filipino Recipes</h1>
-              <Link href="/">
-                <Button variant="outline" className="border-[#E74C3C] text-[#E74C3C] hover:bg-[#FFF0EB]">
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
+            
 
             {/* Search Bar */}
-            <form onSubmit={handleSearch} className="mb-8">
+            <form onSubmit={handleSearch} className="mb-8 mt-16">
               <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <Input
-                  type="text"
-                  placeholder="Search for recipes, ingredients, or categories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-6 text-lg border-2 border-[#FFE0D6] focus:border-[#E74C3C]"
-                />
-                <Button 
-                  type="submit" 
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
-                  disabled={isSearching}
-                >
-                  {isSearching ? "Searching..." : "Search"}
-                </Button>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Search for recipes, ingredients, or categories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-6 text-lg border-2 border-[#FFE0D6] focus:border-[#E74C3C]"
+              />
+              <Button 
+                type="submit" 
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
+                disabled={isSearching}
+              >
+                {isSearching ? "Searching..." : "Search"}
+              </Button>
               </div>
             </form>
 
@@ -167,7 +174,10 @@ export default function kainTayo() {
                           </div>
                         </CardContent>
                         <CardFooter>
-                          <Button className="w-full bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]">
+                          <Button 
+                            className="w-full bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
+                            onClick={() => handleViewRecipe(recipe)}
+                          >
                             View Recipe
                           </Button>
                         </CardFooter>
@@ -179,6 +189,67 @@ export default function kainTayo() {
             )}
           </div>
         </div>
+
+        {/* Recipe Modal */}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            {selectedRecipe && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl text-[#E74C3C]">{selectedRecipe.title}</DialogTitle>
+                  <DialogDescription>{selectedRecipe.description}</DialogDescription>
+                  <button 
+                    onClick={() => setIsModalOpen(false)}
+                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </DialogHeader>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                  <div>
+                    <img 
+                      src={selectedRecipe.image_url} 
+                      alt={selectedRecipe.title}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                    
+                    <div className="flex justify-between mt-4 mb-6">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Clock size={16} className="mr-1" />
+                        <span>Prep: {selectedRecipe.prep_time}min</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Utensils size={16} className="mr-1" />
+                        <span>Cook: {selectedRecipe.cook_time}min</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users size={16} className="mr-1" />
+                        <span>Serves: {selectedRecipe.servings}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-700 mb-2">Ingredients:</h4>
+                      <ul className="text-sm text-gray-600 list-disc list-inside pl-2">
+                        {selectedRecipe.ingredients.map((ingredient, index) => (
+                          <li key={index}>{ingredient}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Instructions:</h4>
+                    <div className="whitespace-pre-line text-sm text-gray-600">
+                      {selectedRecipe.instructions}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </SignedIn>
 
       <SignedOut>
@@ -451,7 +522,7 @@ export default function kainTayo() {
                       <p className="text-sm text-gray-600">Beginner Cook</p>
                     </div>
                   </div>
-                  <p className="text-gray-600 italic">"I never thought I could cook Filipino food until I found Kain Tayo. The videos and detailed instructions made it so simple!"</p>
+                  <p className="text-gray-600 italic">"I never thought I could cook Filipino food until I found Kain Tayo. The detailed instructions made it so simple!"</p>
                   <div className="flex mt-4 text-[#F39C12]">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} size={16} fill="currentColor" />

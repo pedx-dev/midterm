@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton, SignOutButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, SignOutButton, UserButton } from "@clerk/nextjs";
 import { LogIn, LogOut, Utensils } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
@@ -24,12 +24,9 @@ export function Topnav() {
     </SignedOut>
 
     <SignedIn>
-        <SignOutButton > 
-            <Button variant="destructive" className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-            </Button>
-        </SignOutButton>
+    
+            <UserButton />
+        
     </SignedIn>
 </div>
 </nav>
