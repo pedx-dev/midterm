@@ -43,17 +43,17 @@ export default function kainTayo() {
   }, []);
 
   const fetchRecipes = async () => {
-  try {
-    setIsLoading(true);
-    const response = await fetch('/api/recipes');
-    const data = await response.json();
-    setRecipes(data);
-  } catch (error) {
-    console.error('Error fetching recipes:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/recipes?limit=20&page=1');
+      const data = await response.json();
+      setRecipes(data);
+    } catch (error) {
+      console.error('Error fetching recipes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,10 +62,9 @@ export default function kainTayo() {
       return;
     }
 
-    
     try {
       setIsSearching(true);
-      const response = await fetch('/api/recipes', {
+      const response = await fetch('/api/recipes/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,12 +72,9 @@ export default function kainTayo() {
         body: JSON.stringify({ keyword: searchQuery }),
       });
       const data = await response.json();
-
-      // The API now returns an array of recipes (or empty array)
       setRecipes(data);
     } catch (error) {
       console.error('Error searching recipes:', error);
-      setRecipes([]); // Clear recipes on error
     } finally {
       setIsSearching(false);
     }
