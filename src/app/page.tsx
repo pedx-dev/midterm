@@ -64,7 +64,6 @@ export default function kainTayo() {
   }, [page, limit, category, sortBy, order]);
 
   const fetchRecipes = async () => {
-<<<<<<< HEAD
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -88,19 +87,6 @@ export default function kainTayo() {
       setIsLoading(false);
     }
   };
-=======
-  try {
-    setIsLoading(true);
-    const response = await fetch('/api/recipes');
-    const data = await response.json();
-    setRecipes(data);
-  } catch (error) {
-    console.error('Error fetching recipes:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
->>>>>>> 3e7250b2116e3b8f3ca0efbf4dccf41fff3b2b76
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +97,7 @@ export default function kainTayo() {
 
     try {
       setIsSearching(true);
-      const response = await fetch('/api/recipes/search', {
+      const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +105,6 @@ export default function kainTayo() {
         body: JSON.stringify({ keyword: searchQuery }),
       });
       const data = await response.json();
-<<<<<<< HEAD
 
       // Fix: handle both array and object response
       if (Array.isArray(data)) {
@@ -129,11 +114,9 @@ export default function kainTayo() {
       } else {
         setRecipes([]);
       }
-=======
-      setRecipes(data);
->>>>>>> 3e7250b2116e3b8f3ca0efbf4dccf41fff3b2b76
     } catch (error) {
       console.error('Error searching recipes:', error);
+      setRecipes([]); // Clear recipes on error
     } finally {
       setIsSearching(false);
     }
