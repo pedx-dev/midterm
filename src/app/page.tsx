@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Search, Clock, Users, Utensils, BookOpen, ArrowRight, Star, X } from "lucide-react";
+import { Search, Clock, Users, Utensils, BookOpen, ArrowRight, Star, X, Heart, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -15,6 +15,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Badge } from "~/components/ui/badge";
+import { Skeleton } from "~/components/ui/skeleton";
 
 // Define the Recipe type
 interface Recipe {
@@ -27,6 +36,9 @@ interface Recipe {
   servings: number;
   ingredients: string[];
   image_url: string;
+  category?: string;
+  rating?: number;
+  is_favorite?: boolean;
 }
 
 export default function kainTayo() {
@@ -36,27 +48,41 @@ export default function kainTayo() {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch initial recipes on component mount
+  // Pagination, category, and sorting state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [category, setCategory] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<string | undefined>(undefined);
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Fetch recipes with query params
   useEffect(() => {
     fetchRecipes();
-  }, []);
+  }, [page, limit, category, sortBy, order]);
 
   const fetchRecipes = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/recipes');
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(category ? { category } : {}),
+        ...(sortBy ? { sortBy } : {}),
+        order,
+      });
+      const response = await fetch(`/api/recipes?${params.toString()}`);
       const data = await response.json();
-      
-      // Handle the new response structure with pagination
       if (data.recipes) {
         setRecipes(data.recipes);
       } else {
-        // Fallback for direct array response
         setRecipes(data);
       }
     } catch (error) {
       console.error('Error fetching recipes:', error);
+      setRecipes([]);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +95,6 @@ export default function kainTayo() {
       return;
     }
 
-    
     try {
       setIsSearching(true);
       const response = await fetch('/api/recipes', {
@@ -81,8 +106,14 @@ export default function kainTayo() {
       });
       const data = await response.json();
 
-      // The API now returns an array of recipes (or empty array)
-      setRecipes(data);
+      // Fix: handle both array and object response
+      if (Array.isArray(data)) {
+        setRecipes(data);
+      } else if (data.recipes) {
+        setRecipes(data.recipes);
+      } else {
+        setRecipes([]);
+      }
     } catch (error) {
       console.error('Error searching recipes:', error);
       setRecipes([]); // Clear recipes on error
@@ -96,48 +127,229 @@ export default function kainTayo() {
     setIsModalOpen(true);
   };
 
+  const toggleFavorite = (recipeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(recipeId)) {
+      newFavorites.delete(recipeId);
+    } else {
+      newFavorites.add(recipeId);
+    }
+    setFavorites(newFavorites);
+  };
+
+  const clearFilters = () => {
+    setCategory(undefined);
+    setSortBy(undefined);
+    setOrder('asc');
+    setSearchQuery("");
+    fetchRecipes();
+  };
+
+  const hasActiveFilters = category || sortBy || order !== 'asc' || searchQuery;
+
   return (
     <>
       <SignedIn>
-        <div className="min-h-screen bg-gradient-to-b from-[#fffffe] to-[#ffdaba] py-8">
-          <div className="container mx-auto px-4">
-            
-
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="mb-8 mt-16">
-              <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <Input
-                type="text"
-                placeholder="Search for recipes, ingredients, or categories..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-6 text-lg border-2 border-[#FFE0D6] focus:border-[#E74C3C]"
-              />
-              <Button 
-                type="submit" 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
-                disabled={isSearching}
-              >
-                {isSearching ? "Searching..." : "Search"}
-              </Button>
+        <div className="min-h-screen bg-gradient-to-b from-[#fffffe] to-[#ffdaba]">
+          {/* Header */}
+          <header className="bg-white shadow-sm sticky top-0 z-10">
+            <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-10 h-10 bg-gradient-to-r from-[#E74C3C] to-[#F39C12] rounded-full flex items-center justify-center">
+                  <Utensils className="text-white" size={20} />
+                </div>
+                <h1 className="text-2xl font-bold text-[#E74C3C]">Kain Tayo</h1>
               </div>
-            </form>
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" className="text-gray-600 hover:text-[#E74C3C]">
+                  My Profile
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          {/* Hero Section */}
+          <section className="bg-gradient-to-r from-[#E74C3C] to-[#F39C12] text-white py-12">
+            <div className="container mx-auto px-4 text-center">
+              <h2 className="text-4xl font-bold mb-4">Discover Authentic Filipino Recipes</h2>
+              <p className="text-xl mb-8 max-w-2xl mx-auto">
+                From traditional favorites to modern twists, explore our collection of delicious Filipino dishes
+              </p>
+              
+              <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Input
+                    type="text"
+                    placeholder="Search for recipes, ingredients, or categories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-24 py-6 text-lg border-0 focus-visible:ring-2 focus-visible:ring-[#F39C12]"
+                  />
+                  <Button 
+                    type="submit" 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#2C3E50] hover:bg-[#1A252F]"
+                    disabled={isSearching}
+                  >
+                    {isSearching ? "Searching..." : "Search"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <div className="container mx-auto px-4 py-8">
+            {/* Filter Toggle */}
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">Recipes</h3>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2"
+              >
+                <Filter size={16} />
+                Filters
+                {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </Button>
+            </div>
+
+            {/* Filters */}
+            {showFilters && (
+              <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-semibold text-lg">Filter Recipes</h4>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" onClick={clearFilters} className="text-sm text-[#E74C3C]">
+                      Clear all filters
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Category</label>
+                    <Select value={category || "all"} onValueChange={(value) => setCategory(value === "all" ? undefined : value)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
+                        <SelectItem value="main-dish">Main Dish</SelectItem>
+                        <SelectItem value="breakfast">Breakfast</SelectItem>
+                        <SelectItem value="dessert">Dessert</SelectItem>
+                        <SelectItem value="soup">Soup</SelectItem>
+                        <SelectItem value="appetizer">Appetizer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Sort by</label>
+                    <Select value={sortBy || "default"} onValueChange={(value) => setSortBy(value === "default" ? undefined : value)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Default" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Default</SelectItem>
+                        <SelectItem value="title">Title</SelectItem>
+                        <SelectItem value="prep_time">Prep Time</SelectItem>
+                        <SelectItem value="cook_time">Cook Time</SelectItem>
+                        <SelectItem value="created_at">Date Added</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Order</label>
+                    <Select value={order} onValueChange={(value) => setOrder(value as 'asc' | 'desc')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Ascending" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="asc">Ascending</SelectItem>
+                        <SelectItem value="desc">Descending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Active filter indicators */}
+                {hasActiveFilters && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {category && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        Category: {category}
+                        <X size={12} onClick={() => setCategory(undefined)} className="cursor-pointer" />
+                      </Badge>
+                    )}
+                    {sortBy && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        Sort by: {sortBy}
+                        <X size={12} onClick={() => setSortBy(undefined)} className="cursor-pointer" />
+                      </Badge>
+                    )}
+                    {order !== 'asc' && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        Order: {order}
+                        <X size={12} onClick={() => setOrder('asc')} className="cursor-pointer" />
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="text-sm text-gray-600">
+                Showing {recipes.length} results
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                  Previous
+                </Button>
+                <span className="px-2 text-sm">Page {page}</span>
+                <Button variant="outline" size="sm" onClick={() => setPage(page + 1)}>
+                  Next
+                </Button>
+              </div>
+            </div>
 
             {/* Recipe Cards Grid */}
             {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#E74C3C]"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <Skeleton className="h-48 w-full" />
+                    <CardHeader>
+                      <Skeleton className="h-6 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-full" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between mb-4">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </CardContent>
+                    <CardFooter>
+                      <Skeleton className="h-10 w-full" />
+                    </CardFooter>
+                  </Card>
+                ))}
               </div>
             ) : (
               <>
                 {recipes.length === 0 ? (
-                  <div className="text-center py-12">
+                  <div className="text-center py-12 bg-white rounded-lg shadow">
                     <h2 className="text-2xl font-semibold text-gray-700 mb-4">No recipes found</h2>
-                    <p className="text-gray-600">Try a different search term or browse all recipes.</p>
+                    <p className="text-gray-600 mb-6">Try a different search term or browse all recipes.</p>
                     <Button 
                       onClick={fetchRecipes}
-                      className="mt-4 bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
+                      className="bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
                     >
                       Browse All Recipes
                     </Button>
@@ -145,41 +357,67 @@ export default function kainTayo() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {recipes.map((recipe) => (
-                      <Card key={recipe.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                        <div className="h-48 overflow-hidden">
+                      <Card 
+                        key={recipe.id} 
+                        className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer group"
+                        onClick={() => handleViewRecipe(recipe)}
+                      >
+                        <div className="h-48 overflow-hidden relative">
                           <img 
                             src={recipe.image_url} 
                             alt={recipe.title}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
+                          <div className="absolute top-3 left-3">
+                            <Badge className="bg-white text-[#E74C3C] hover:bg-white">
+                              {recipe.category || "Dish"}
+                            </Badge>
+                          </div>
+                          <Button 
+                            size="icon" 
+                            className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/80 hover:bg-white"
+                            onClick={(e) => toggleFavorite(recipe.id, e)}
+                          >
+                            <Heart 
+                              size={18} 
+                              className={favorites.has(recipe.id) ? "fill-[#E74C3C] text-[#E74C3C]" : "text-gray-600"} 
+                            />
+                          </Button>
                         </div>
-                        <CardHeader>
-                          <CardTitle className="text-xl text-[#E74C3C]">{recipe.title}</CardTitle>
-                          <CardDescription>{recipe.description}</CardDescription>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xl text-[#2C3E50] line-clamp-1">{recipe.title}</CardTitle>
+                          <CardDescription className="line-clamp-2">{recipe.description}</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between mb-4">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Clock size={16} className="mr-1" />
-                              <span>Prep: {recipe.prep_time}min</span>
+                        <CardContent className="pb-2">
+                          <div className="flex justify-between mb-3 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              <Clock size={14} className="mr-1" />
+                              <span>{recipe.prep_time + recipe.cook_time} min</span>
                             </div>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Utensils size={16} className="mr-1" />
-                              <span>Cook: {recipe.cook_time}min</span>
+                            <div className="flex items-center">
+                              <Users size={14} className="mr-1" />
+                              <span>{recipe.servings} servings</span>
                             </div>
-                            <div className="flex items-center text-sm text-gray-600">
-                              <Users size={16} className="mr-1" />
-                              <span>Serves: {recipe.servings}</span>
+                            <div className="flex items-center">
+                              {recipe.rating && (
+                                <>
+                                  <Star size={14} className="mr-1 fill-[#F39C12] text-[#F39C12]" />
+                                  <span>{recipe.rating.toFixed(1)}</span>
+                                </>
+                              )}
                             </div>
                           </div>
-                          <div className="mb-4">
-                            <h4 className="font-semibold text-gray-700 mb-2">Ingredients:</h4>
-                            <ul className="text-sm text-gray-600 list-disc list-inside">
-                              {recipe.ingredients.slice(0, 3).map((ingredient, index) => (
-                                <li key={index}>{ingredient}</li>
+                          <div className="mb-2">
+                            <h4 className="font-semibold text-sm text-gray-700 mb-1">Ingredients:</h4>
+                            <ul className="text-sm text-gray-600 line-clamp-2">
+                              {recipe.ingredients.slice(0, 2).map((ingredient, index) => (
+                                <li key={index} className="inline">
+                                  {ingredient}
+                                  {index < recipe.ingredients.slice(0, 2).length - 1 ? ', ' : ''}
+                                </li>
                               ))}
-                              {recipe.ingredients.length > 3 && (
-                                <li className="text-[#E74C3C]">+{recipe.ingredients.length - 3} more</li>
+                              {recipe.ingredients.length > 2 && (
+                                <span className="text-[#E74C3C]"> +{recipe.ingredients.length - 2} more</span>
                               )}
                             </ul>
                           </div>
@@ -187,7 +425,6 @@ export default function kainTayo() {
                         <CardFooter>
                           <Button 
                             className="w-full bg-gradient-to-r from-[#E74C3C] to-[#F39C12] hover:from-[#C0392B] hover:to-[#D35400]"
-                            onClick={() => handleViewRecipe(recipe)}
                           >
                             View Recipe
                           </Button>
@@ -203,57 +440,80 @@ export default function kainTayo() {
 
         {/* Recipe Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
             {selectedRecipe && (
               <>
-                <DialogHeader>
-                  <DialogTitle className="text-2xl text-[#E74C3C]">{selectedRecipe.title}</DialogTitle>
-                  <DialogDescription>{selectedRecipe.description}</DialogDescription>
+                <div className="relative">
+                  <img 
+                    src={selectedRecipe.image_url} 
+                    alt={selectedRecipe.title}
+                    className="w-full h-64 object-cover"
+                  />
                   <button 
                     onClick={() => setIsModalOpen(false)}
-                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none"
+                    className="absolute right-4 top-4 rounded-full bg-white/80 p-2 hover:bg-white"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="h-5 w-5" />
                   </button>
-                </DialogHeader>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                  <div>
-                    <img 
-                      src={selectedRecipe.image_url} 
-                      alt={selectedRecipe.title}
-                      className="w-full h-64 object-cover rounded-lg"
+                  <Button 
+                    size="icon" 
+                    className="absolute right-14 top-4 rounded-full bg-white/80 hover:bg-white"
+                    onClick={(e) => toggleFavorite(selectedRecipe.id, e)}
+                  >
+                    <Heart 
+                      size={18} 
+                      className={favorites.has(selectedRecipe.id) ? "fill-[#E74C3C] text-[#E74C3C]" : "text-gray-600"} 
                     />
-                    
-                    <div className="flex justify-between mt-4 mb-6">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Clock size={16} className="mr-1" />
-                        <span>Prep: {selectedRecipe.prep_time}min</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Utensils size={16} className="mr-1" />
-                        <span>Cook: {selectedRecipe.cook_time}min</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Users size={16} className="mr-1" />
-                        <span>Serves: {selectedRecipe.servings}</span>
-                      </div>
+                  </Button>
+                  <div className="absolute bottom-4 left-4">
+                    <Badge className="bg-white text-[#E74C3C] hover:bg-white text-sm">
+                      {selectedRecipe.category || "Dish"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <DialogHeader className="mb-4">
+                    <DialogTitle className="text-2xl text-[#2C3E50]">{selectedRecipe.title}</DialogTitle>
+                    <DialogDescription>{selectedRecipe.description}</DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-[#FFF5EB] rounded-lg">
+                    <div className="flex flex-col items-center text-center">
+                      <Clock size={20} className="text-[#E74C3C] mb-1" />
+                      <span className="text-sm font-medium">Prep Time</span>
+                      <span className="text-lg font-semibold">{selectedRecipe.prep_time} min</span>
                     </div>
-                    
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-gray-700 mb-2">Ingredients:</h4>
-                      <ul className="text-sm text-gray-600 list-disc list-inside pl-2">
-                        {selectedRecipe.ingredients.map((ingredient, index) => (
-                          <li key={index}>{ingredient}</li>
-                        ))}
-                      </ul>
+                    <div className="flex flex-col items-center text-center">
+                      <Utensils size={20} className="text-[#E74C3C] mb-1" />
+                      <span className="text-sm font-medium">Cook Time</span>
+                      <span className="text-lg font-semibold">{selectedRecipe.cook_time} min</span>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <Users size={20} className="text-[#E74C3C] mb-1" />
+                      <span className="text-sm font-medium">Servings</span>
+                      <span className="text-lg font-semibold">{selectedRecipe.servings}</span>
                     </div>
                   </div>
                   
-                  <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Instructions:</h4>
-                    <div className="whitespace-pre-line text-sm text-gray-600">
-                      {selectedRecipe.instructions}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-semibold text-lg text-gray-800 mb-3">Ingredients:</h4>
+                      <ul className="space-y-2">
+                        {selectedRecipe.ingredients.map((ingredient, index) => (
+                          <li key={index} className="flex items-start">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#E74C3C] mt-2 mr-3 flex-shrink-0"></div>
+                            <span className="text-gray-700">{ingredient}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-semibold text-lg text-gray-800 mb-3">Instructions:</h4>
+                      <div className="prose prose-sm text-gray-700 whitespace-pre-line">
+                        {selectedRecipe.instructions}
+                      </div>
                     </div>
                   </div>
                 </div>
