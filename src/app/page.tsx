@@ -53,7 +53,7 @@ export default function kainTayo() {
 
   // Pagination, category, and sorting state
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(6);
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState<string | undefined>(undefined);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -62,6 +62,11 @@ export default function kainTayo() {
   useEffect(() => {
     fetchRecipes();
   }, [page, limit, category, sortBy, order]);
+
+
+    useEffect(() => {
+      setPage(1);
+    }, [category, sortBy, order]);
 
   const fetchRecipes = async () => {
     try {
@@ -440,7 +445,7 @@ export default function kainTayo() {
 
         {/* Recipe Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 [&>button:last-child]:hidden ">
             {selectedRecipe && (
               <>
                 <div className="relative">
