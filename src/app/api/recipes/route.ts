@@ -1,16 +1,16 @@
 export async function GET(request: Request) {
   const apiKey = process.env.MY_KEY;
-  const url = new URL(request.url);
+  const url = new URL(request.url); // Get the full URL of the request
 
   // Extract query parameters
-  const page = url.searchParams.get("page") || "1";
+  const page = url.searchParams.get("page") || "1"; // https://example.com/api/recipes?page=2
   const limit = url.searchParams.get("limit") || "10";
   const category = url.searchParams.get("category");
   const sortBy = url.searchParams.get("sortBy");
   const order = url.searchParams.get("order") || "asc";
 
   // Build the API URL with query parameters
-  const apiUrl = new URL("https://ipt-apikey.vercel.app/api/ping");
+  const apiUrl = new URL("https://ipt-apikey.vercel.app/api/ping"); // Base API URL
   apiUrl.searchParams.set("page", page);
   apiUrl.searchParams.set("limit", limit);
   if (category) apiUrl.searchParams.set("category", category);

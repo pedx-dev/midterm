@@ -53,7 +53,7 @@ export default function kainTayo() {
 
   // Pagination, category, and sorting state
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(6);
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [sortBy, setSortBy] = useState<string | undefined>(undefined);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
