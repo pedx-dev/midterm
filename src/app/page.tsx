@@ -179,17 +179,17 @@ export default function kainTayo() {
               
               <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white" size={20} />
                   <Input
                     type="text"
                     placeholder="Search for recipes, ingredients, or categories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-24 py-6 text-lg border-0 focus-visible:ring-2 focus-visible:ring-[#F39C12]"
+                    className="pl-10 pr-24 py-6 text-lg border-0 focus-visible:ring-2 focus-visible:ring-[#F39C12] text-white placeholder:text-white/70"
                   />
                   <Button 
                     type="submit" 
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#2C3E50] hover:bg-[#1A252F]"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-[#2C3E50] hover:bg-[#1A252F] text-white"
                     disabled={isSearching}
                   >
                     {isSearching ? "Searching..." : "Search"}
@@ -234,12 +234,14 @@ export default function kainTayo() {
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
+
+
                         <SelectItem value="all">All categories</SelectItem>
-                        <SelectItem value="main-dish">Main Dish</SelectItem>
-                        <SelectItem value="breakfast">Breakfast</SelectItem>
-                        <SelectItem value="dessert">Dessert</SelectItem>
-                        <SelectItem value="soup">Soup</SelectItem>
-                        <SelectItem value="appetizer">Appetizer</SelectItem>
+                        <SelectItem value="Main Dish">Main Dish</SelectItem>
+                        <SelectItem value="Breakfast">Breakfast</SelectItem>
+                        <SelectItem value="Dessert">Dessert</SelectItem>
+                    
+
                       </SelectContent>
                     </Select>
                   </div>
@@ -440,7 +442,7 @@ export default function kainTayo() {
 
         {/* Recipe Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 [&>button:last-child]:hidden " >
             {selectedRecipe && (
               <>
                 <div className="relative">
