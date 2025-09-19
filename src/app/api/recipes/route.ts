@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      postBody: keyword, // Updated to match the API's expected field
+      postBody: keyword, 
       action: "search_recipes",
     }),
   });
@@ -85,42 +85,23 @@ export async function POST(request: Request) {
 
   const response = await apiRes.json();
 
-  // Handle both single recipe and multiple recipes response structure
-  let recipes = [];
-
-  if (response.ok && response.recipe) {
-    // Single recipe response
-    recipes = [
-      {
-        id: response.recipe.id.toString(),
-        title: response.recipe.title,
-        description: response.recipe.description,
-        instructions: response.recipe.instructions,
-        category: response.recipe.category,
-        prep_time: response.recipe.prepTime,
-        cook_time: response.recipe.cookTime,
-        servings: response.recipe.servings,
-        ingredients: response.recipe.ingredients.split(", "),
-        image_url: response.recipe.imageUrl,
-      },
-    ];
-  } else if (response.ok && response.recipes) {
-    // Multiple recipes response
-    recipes = response.recipes.map((recipe: any) => ({
-      id: recipe.id.toString(),
-      title: recipe.title,
-      description: recipe.description,
-      instructions: recipe.instructions,
-      category: recipe.category,
-      prep_time: recipe.prepTime,
-      cook_time: recipe.cookTime,
-      servings: recipe.servings,
-      ingredients: recipe.ingredients.split(", "),
-      image_url: recipe.imageUrl,
-    }));
-  }
-
-  console.log("Recipes:", recipes); // Debugging line
-
+ 
+let recipes = [];
+if (response.ok && response.recipes) {
+  // Always map over an array
+  const recipeArray = Array.isArray(response.recipes) ? response.recipes : [response.recipes];
+  recipes = recipeArray.map((recipe: any) => ({
+    id: recipe.id.toString(),
+    title: recipe.title,
+    description: recipe.description,
+    instructions: recipe.instructions,
+    category: recipe.category,
+    prep_time: recipe.prepTime,
+    cook_time: recipe.cookTime,
+    servings: recipe.servings,
+    ingredients: recipe.ingredients.split(", "),
+    image_url: recipe.imageUrl,
+  }));
+}
   return Response.json(recipes, { status: apiRes.status });
 }
