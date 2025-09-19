@@ -63,6 +63,10 @@ export default function kainTayo() {
     fetchRecipes();
   }, [page, limit, category, sortBy, order]);
 
+  useEffect(() => {
+      setPage(1);
+    }, [category, sortBy, order]);
+
   const fetchRecipes = async () => {
     try {
       setIsLoading(true);
