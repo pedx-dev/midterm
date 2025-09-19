@@ -65,7 +65,7 @@ export default function kainTayo() {
 
   useEffect(() => {
       setPage(1);
-    }, [category, sortBy, order]);
+    }, [category, sortBy, order, cl]);
 
   const fetchRecipes = async () => {
     try {
@@ -143,11 +143,12 @@ export default function kainTayo() {
   };
 
   const clearFilters = () => {
-    setCategory(undefined);
-    setSortBy(undefined);
-    setOrder('asc');
-    setSearchQuery("");
-    fetchRecipes();
+  setCategory(undefined);
+  setSortBy(undefined);
+  setOrder('asc');
+  setSearchQuery("");
+  setPage(1);
+  fetchRecipes();
   };
 
   const hasActiveFilters = category || sortBy || order !== 'asc' || searchQuery;
