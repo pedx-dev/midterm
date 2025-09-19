@@ -242,10 +242,12 @@ export default function kainTayo() {
 
 
                         <SelectItem value="all">All categories</SelectItem>
-                        <SelectItem value="Main Dish">Main Dish</SelectItem>
+                        <SelectItem value="main-dish">Main Dish</SelectItem>
                         <SelectItem value="Breakfast">Breakfast</SelectItem>
                         <SelectItem value="Dessert">Dessert</SelectItem>
-                    
+                        <SelectItem value="appetizer">Appetizer</SelectItem>
+                        <SelectItem value="soup">Soup</SelectItem>
+                                            
 
                       </SelectContent>
                     </Select>
